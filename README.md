@@ -37,6 +37,19 @@ NSData *broadcast = [[NSData alloc] initWithBytes:"abcdefg" length:3];
  ];
  
 ```
+``` 
+-(void) listenningTimeOut:(NSTimeInterval)inputMaxTimeout
+receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+           Success:(SuccessBlkType)Success
+        TimeoutBlk:(TimeoutBlkType)timeoutProcess;
+        
+```
+
+```
+-(void) listenningForeverWithreceiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+                                        Success:(SuccessBlkType)Success;
+                                        
+```
  
  
  

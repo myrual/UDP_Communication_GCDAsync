@@ -11,26 +11,27 @@
 
 @implementation UDPCommunication
 
-@synthesize myDestinationHost;
-@synthesize myDestinationPort;
-@synthesize StartTime;
-@synthesize WaitingRespose;
-@synthesize mysocket;
-@synthesize myContent;
-@synthesize maxTimeout;
-@synthesize resendInterval;
-@synthesize recvFilteBlock;
-@synthesize SuccessBlock;
-@synthesize TimeoutAction;
+@synthesize myDestinationHost = _myDestinationHost;
+@synthesize myDestinationPort = _myDestinationPort;
+@synthesize StartTime = _StartTime;
+@synthesize WaitingRespose = _WaitingRespose;
+@synthesize mysocket = _mysocket;
+@synthesize myContent = _myContent;
+@synthesize maxTimeout = _maxTimeout;
+@synthesize resendInterval = _resendInterval;
+@synthesize recvFilteBlock = _recvFilteBlock;
+@synthesize SuccessBlock = _SuccessBlock;
+@synthesize TimeoutAction = _TimeoutAction;
 @synthesize timeOutResult;
-@synthesize  readTimer;
-@synthesize resendTimer;
+@synthesize  readTimer = _readTimer;
+@synthesize resendTimer = _resendTimer;
+@synthesize listenForever = _listenForever;
 
 -(NSMutableArray *) timeOutResult{
-    if (timeOutResult == nil) {
-        timeOutResult = [[NSMutableArray alloc] init];
+    if (self.timeOutResult == nil) {
+        self.timeOutResult = [[NSMutableArray alloc] init];
     }
-    return timeOutResult;
+    return self.timeOutResult;
 }
 
 -(id) init{
@@ -194,6 +195,117 @@ NSData *broadcast = [[NSData alloc] initWithBytes:"abcdefg" length:3];
 	}
 }
 
+
+#define DEFAULT_TIMEOUT_SENDUDP 5
+/*  Following is an example
+ [localTest listenningTimeOut:20
+ receiveFilterBlock:^(NSData *data, NSData *address, id *context){
+ NSLog(@"receive data %@ with address length %d from %@", data, [address length], address);
+ if ([address length] == 16) {
+ return YES;
+ }
+ else {
+ return NO;
+ }
+ }
+ Success:^(NSData *data, NSString *host, NSInteger port){
+ NSLog(@"success with data %@ from %@ port%d", data, host, port);
+ }
+ TimeoutBlk:^(NSArray *result){
+ NSLog(@"time out");
+ for (NSDictionary *obj in result) {
+ NSLog(@"%@", obj);
+ }
+ }];
+ */
+-(void) listenningTimeOut:(NSTimeInterval)inputMaxTimeout
+     receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+                Success:(SuccessBlkType)Success
+             TimeoutBlk:(TimeoutBlkType)timeoutProcess{
+    
+    
+    
+	if (inputMaxTimeout > 0)
+	{
+        [self.mysocket setDelegate:self];
+        [self.mysocket setReceiveFilter:recvBlk withQueue:dispatch_get_main_queue()];
+        self.maxTimeout = inputMaxTimeout;
+        self.SuccessBlock = Success;
+        self.TimeoutAction = timeoutProcess;
+        self.recvFilteBlock = recvBlk;
+        
+        self.StartTime = [[NSDate alloc] init];
+#if NEEDS_DISPATCH_RETAIN_RELEASE
+		dispatch_source_t theReadTimer = readTimer;
+		dispatch_source_set_cancel_handler(readTimer, ^{
+			LogVerbose(@"dispatch_release(readTimer)");
+			dispatch_release(theReadTimer);
+		});
+#endif
+		
+        if (inputMaxTimeout > 0)
+        {
+            
+            self.readTimer = dispatch_source_create(DISPATCH_SOURCE_TYPE_TIMER, 0, 0, dispatch_get_main_queue());
+            
+            dispatch_source_set_event_handler(self.readTimer, ^{
+                //if timeout, stop receiving
+                [self.mysocket pauseReceiving];
+                dispatch_source_cancel(self.readTimer);
+                dispatch_release(self.readTimer);
+                self.readTimer =nil;
+                
+                timeoutProcess(self.timeOutResult);
+            });
+            
+#if NEEDS_DISPATCH_RETAIN_RELEASE
+            dispatch_source_t theReadTimer = readTimer;
+            dispatch_source_set_cancel_handler(readTimer, ^{
+                LogVerbose(@"dispatch_release(readTimer)");
+                dispatch_release(theReadTimer);
+            });
+#endif
+            
+            dispatch_time_t tt = dispatch_time(DISPATCH_TIME_NOW, (self.maxTimeout * NSEC_PER_SEC));
+            
+            dispatch_source_set_timer(self.readTimer, tt, inputMaxTimeout * NSEC_PER_SEC, (inputMaxTimeout+1) * NSEC_PER_SEC);
+        }
+        //[self setupReadTimerWithTimeout:self.maxTimeout withDispatchQueue:nil];
+        
+        NSError *err = nil;
+        [self.mysocket beginReceiving:&err];
+        if (self.readTimer) {
+            dispatch_resume(self.readTimer);
+        }
+
+	}
+}
+
+-(void) listenningForeverWithreceiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+                  Success:(SuccessBlkType)Success{
+    [self.mysocket setDelegate:self];
+    [self.mysocket setReceiveFilter:recvBlk withQueue:dispatch_get_main_queue()];
+    self.SuccessBlock = Success;
+    self.recvFilteBlock = recvBlk;
+    self.listenForever = YES;
+    
+    self.StartTime = [[NSDate alloc] init];
+#if NEEDS_DISPATCH_RETAIN_RELEASE
+    dispatch_source_t theReadTimer = readTimer;
+    dispatch_source_set_cancel_handler(readTimer, ^{
+        LogVerbose(@"dispatch_release(readTimer)");
+        dispatch_release(theReadTimer);
+    });
+#endif
+    
+    NSError *err = nil;
+    [self.mysocket beginReceiving:&err];
+}
+
+-(void) stopListeningForEver{
+    self.listenForever = NO;
+    [self.mysocket pauseReceiving];
+}
 - (void)udpSocket:(GCDAsyncUdpSocket *)sock didSendDataWithTag:(long)tag
 {
 	// You could add checks here
@@ -231,6 +343,10 @@ withFilterContext:(id)filterContext
         }
         [self.mysocket pauseReceiving];
         self.SuccessBlock(data, host, port);
+        if (self.listenForever == YES) {
+            NSError *err = nil;
+            [self.mysocket beginReceiving:&err];
+        }
     }
 }
 

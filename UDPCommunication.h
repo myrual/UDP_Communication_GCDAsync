@@ -26,7 +26,7 @@ typedef void (^SuccessBlkType)(NSData*, NSString *, NSInteger port);
 @property (nonatomic, strong) NSMutableArray *timeOutResult;
 @property (nonatomic) 	dispatch_source_t readTimer;
 @property (nonatomic) 	dispatch_source_t resendTimer;
-
+@property (nonatomic)   BOOL listenForever;
 //prepare follow:
 //content, destination, max timeout
 //block to check the incoming UDP data is expected data
@@ -64,4 +64,15 @@ typedef void (^SuccessBlkType)(NSData*, NSString *, NSInteger port);
      receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
                 Success:(SuccessBlkType)Success
              TimeoutBlk:(TimeoutBlkType)timeoutProcess;
+
+
+
+-(void) listenningTimeOut:(NSTimeInterval)inputMaxTimeout
+receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+           Success:(SuccessBlkType)Success
+        TimeoutBlk:(TimeoutBlkType)timeoutProcess;
+-(void) listenningForeverWithreceiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+                                        Success:(SuccessBlkType)Success;
+
+-(void) stopListeningForEver;
 @end
