@@ -46,8 +46,18 @@ receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
 ```
 
 ```
--(void) listenningForeverWithreceiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
-                                        Success:(SuccessBlkType)Success;
+    [mysocket listenningForeverWithreceiveFilterBlock:^(NSData *data, NSData *address, id *context){
+        NSLog(@"receive data %@ with address length %d from %@", data, [address length], address);
+		return YES;
+    }
+        Success:^(NSData *data, NSString *host, NSInteger port){
+			NSLog(@"success with data %@ from %@ port%d", data, host, port);\
+	}];
+	//.…………
+	//after some times
+	//need to pause receiving
+	[mysocket stopListeningForEver];
+
                                         
 ```
  
