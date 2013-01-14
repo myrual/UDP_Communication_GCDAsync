@@ -1,9 +1,8 @@
 //
 //  UDPCommunication.m
-//  anfang
 //
-//  Created by lilin on 12-9-6.
-//  Copyright (c) 2012年 lilin. All rights reserved.
+//  Created by myrual on 12-9-6.
+//  BSD licesne
 //
 
 #import "UDPCommunication.h"
