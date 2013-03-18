@@ -11,10 +11,10 @@
 @interface UDPCommunication : NSObject
 typedef void (^TimeoutBlkType)(NSArray *);
 typedef void (^SuccessBlkType)(NSData*, NSString *, NSInteger port);
+typedef BOOL (^SuccessBlkTypeSafer)(NSData*, NSString *, NSInteger port);
 @property (nonatomic, strong) NSString * myDestinationHost;
 @property (nonatomic) NSInteger myDestinationPort;
 @property (nonatomic) BOOL WaitingRespose;
-@property (nonatomic) NSDate * StartTime;
 @property (nonatomic, strong) GCDAsyncUdpSocket *mysocket;
 @property (nonatomic) NSTimeInterval maxTimeout;
 @property (nonatomic) NSTimeInterval resendInterval;
@@ -22,10 +22,13 @@ typedef void (^SuccessBlkType)(NSData*, NSString *, NSInteger port);
 @property (nonatomic, strong) GCDAsyncUdpSocketReceiveFilterBlock recvFilteBlock;
 @property (nonatomic, strong) TimeoutBlkType TimeoutAction;
 @property (nonatomic, strong) SuccessBlkType SuccessBlock;
+@property (nonatomic, strong) SuccessBlkTypeSafer safeSucceeBlock;
 @property (nonatomic, strong) NSMutableArray *timeOutResult;
 @property (nonatomic) 	dispatch_source_t readTimer;
 @property (nonatomic) 	dispatch_source_t resendTimer;
 @property (nonatomic)   BOOL listenForever;
+@property (nonatomic)   BOOL inFiterBlock;
+@property    BOOL inSuccessBlock;
 //prepare follow:
 //content, destination, max timeout
 //block to check the incoming UDP data is expected data
@@ -64,7 +67,15 @@ typedef void (^SuccessBlkType)(NSData*, NSString *, NSInteger port);
                 Success:(SuccessBlkType)Success
              TimeoutBlk:(TimeoutBlkType)timeoutProcess;
 
-
+-(void) safeSendWithContent:(NSData *)Content
+                 toHost:(NSString *)host
+                 toPort:(NSInteger)port
+            withTimeout:(NSTimeInterval)inputMaxTimeout
+     withResendInterval:(NSTimeInterval)inputresendInterval
+        enableBroadCast:(BOOL) flag
+     receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
+                Success:(SuccessBlkTypeSafer)Success
+             TimeoutBlk:(TimeoutBlkType)timeoutProcess;
 
 -(void) listenningTimeOut:(NSTimeInterval)inputMaxTimeout
 receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
@@ -74,4 +85,5 @@ receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
                                         Success:(SuccessBlkType)Success;
 
 -(void) stopListeningForEver;
+-(void) stopUdpCommunication;
 @end
