@@ -108,6 +108,12 @@
 
 }
 
+-(void)closeUDPSocket{
+    [self stopUdpCommunication];
+    [self.mysocket close];
+    _mysocket = nil;
+}
+
 -(void) setupFlagForEachOperation{
     self.inSuccessBlock = NO;
     self.inFiterBlock = NO;

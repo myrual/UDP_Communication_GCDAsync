@@ -86,4 +86,5 @@ receiveFilterBlock:(GCDAsyncUdpSocketReceiveFilterBlock)recvBlk
 
 -(void) stopListeningForEver;
 -(void) stopUdpCommunication;
+-(void)closeUDPSocket;
 @end
